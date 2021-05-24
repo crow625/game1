@@ -12,7 +12,8 @@ class Warrior():
         self.moveCost = {'g': 1, 'd': 2, 'm': 3, 'w': -1}
         self.movesLeft = self.maxMoves
         self.team = team
-        self.image = team + "W"
+        self.name = 'W'
+        self.image = team + name
             
     def getMoves(self, r, c, moves, gs, n):
         directions = ((0, -1), (-1, 0), (0, 1), (1, 0))
