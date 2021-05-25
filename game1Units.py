@@ -13,7 +13,7 @@ class Warrior():
         self.movesLeft = self.maxMoves
         self.team = team
         self.name = 'W'
-        self.image = team + name
+        self.image = self.team + self.name
             
     def getMoves(self, r, c, moves, gs, n):
         directions = ((0, -1), (-1, 0), (0, 1), (1, 0))
