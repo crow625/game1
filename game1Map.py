@@ -96,9 +96,12 @@ class ShortestPaths():
             
             for coord in list(neighbors): #for every neighbor
                 #add the current distance to the cost of the tile we're currently checking
+                #move cost of -1 means invalid tile
+                if neighbors[coord].getCost(unit.name) < 0:
+                    continue
                 dist = self.paths[f].distance + neighbors[coord].getCost(unit.name) #FUTURE PROBLEM: will count distances of -1
-                
-                if dist > unit.maxMoves:
+                #if unit has used all movement getting to this point, don't check
+                if self.paths[f].distance >= unit.maxMoves:
                     continue
                 
                 #if tile does not have an entry in paths, it is new
