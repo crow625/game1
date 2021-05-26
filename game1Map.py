@@ -5,6 +5,7 @@ Defines how the game map is stored.
 '''
 
 import game1Data as gd
+import game1Units as gu
 
 GRASS_COST = {'W': 1}
 DESERT_COST = {'W': 2}
@@ -52,7 +53,7 @@ class MapArray():
         return self.gameMap[r][c]
     
     def getDim(self):
-        return len(self.gameMap)
+        return self.dim
     
     def getMap(self):
         return self.gameMap
@@ -77,37 +78,49 @@ class MapArray():
                         
 class ShortestPaths():
     def __init__(self):
-        self.paths = {} #map node to path data
+        self.paths = {} #map node (tile) to path data
         
     def compute(self, orig, unit):
         #orig: tile object, unit: unit object
-        paths = {} #map destination tile to pathdata
         #frontier has value tile, and priority distance
         frontier = gd.MinHeap()
         frontier.add(orig, 0) #original tile has distance 0
-        paths[orig] = self.PathData('-', None) #no previous node
+        self.paths[orig] = self.PathData(0, None) #no previous node, give it terrain type with 0 movement cost
         
-        while frontier.size != 0:
-            f = frontier.poll() #f is a tile
+        while frontier.size() != 0:
+            
+            f = frontier.poll() #f is a tile, THE CLOSEST tile to the origin that has not been determined yet
+            
+            
             neighbors = f.getNeighbors() #neighbors is a dictionary that maps coordinates to a tile
             
             for coord in list(neighbors): #for every neighbor
-                dist = paths[f].distance[unit] + neighbors[coord].getCost(unit) #FUTURE PROBLEM: will count distances of -1
+                #add the current distance to the cost of the tile we're currently checking
+                dist = self.paths[f].distance + neighbors[coord].getCost(unit.name) #FUTURE PROBLEM: will count distances of -1
                 
-                if paths.get(neighbors[coord]) is None: #if tile does not have an entry in paths, it is not in frontier or seen
-                    paths[neighbors[coord]] = self.PathData(neighbors[coord].getTerrain(), f) #add map from tile to pathdata
-                    frontier.add(neighbors[coord], dist) #add tile to frontier
+                if dist > unit.maxMoves:
+                    continue
+                
+                #if tile does not have an entry in paths, it is new
+                if self.paths.get(neighbors[coord]) is None:
+                    #add map from tile to pathdata
+                    self.paths[neighbors[coord]] = self.PathData(dist, f)
+                    #add tile to frontier
+                    frontier.add(neighbors[coord], dist) 
                     
-                elif paths[f].distance[unit] < dist:
-                    paths[neighbors[coord]] = self.PathData(neighbors[coord].getTerrain(), f)
+                elif self.paths[f].distance + neighbors[coord].getCost(unit.name) < dist:
                     
-    def shortestPathLength(self, dest, unit):
+                    self.paths[neighbors[coord]] = self.PathData(dist, f)
+                    
+                    #distance is not saving correctly, make it a real value, not a dictionary
+                    
+    def shortestPathLength(self, dest):
         if self.paths.get(dest) is None:
             return 1000
-        return self.paths[dest].distance[unit]
+        return self.paths[dest].distance
     
-    def shortestPath(self, dest, unit):
-        if self.paths[dest] is None:
+    def shortestPath(self, dest):
+        if self.paths.get(dest) is None:
             return None
         route = []
         route.append(dest)
@@ -121,7 +134,7 @@ class ShortestPaths():
             
         if current == dest: #if origin is destination, just return the one node
             return route
-        route.append(current)
+        #route.append(current) - origin was included twice so throw that out?
         
         #route is in reverse order: destination -> origin
         route2 = []
@@ -132,42 +145,46 @@ class ShortestPaths():
                     
     #map terrain (distance dictionary) to previous node
     class PathData():
-        def __init__(self, terr, prev):
+        def __init__(self, dist, prev):
             #distance: terrain dictionary
             #prev: tile
-            self.distance = TERR_COST[terr]
+            self.distance = dist
             self.previous = prev          
        
 def main():
-    gm = MapArray(8)
-    gm.construct('g')
-    t0 = gm.getTile(0, 0)
-    t1 = gm.getTile(1, 1)
+    ma = MapArray(8)
+    ma.construct('g')
+    t0 = ma.getTile(0, 0)
+    t1 = ma.getTile(0, 1)
+    t2 = ma.getTile(1, 1)
+    t3 = ma.getTile(2, 2)
+    t4 = ma.getTile(4, 4)
     
-    a = gd.AList()
+    mu1 = gu.Warrior('u')
+    
+    sp = ShortestPaths()
+    sp.compute(t0, mu1)
+    for n in sp.shortestPath(t2):
+        print(n.getCoords())
+    print("Should be 0: " + str(sp.shortestPathLength(t0)))
+    print("Should be 1: " + str(sp.shortestPathLength(t1)))
+    print("Should be 2: " + str(sp.shortestPathLength(t2)))
+    print("Should be 4: " + str(sp.shortestPathLength(t3)))
+    print("Should be 1000: " + str(sp.shortestPathLength(t4)))
+    
+    
     '''
     mh = gd.MinHeap()
     mh.add('a', 1)
-    mh.add('c', 3)
     mh.add('b', 2)
-    mh.add('j', 10)
-    mh.add('g', 7)
     mh.add('e', 5)
-    mh.add('d', 4)
     mh.add('f', 6)
-    mh.add('h', 8)
-    mh.add('i', 9)
+    mh.add('d', 4)
+    mh.add('c', 3)
     print(mh.peek())
-    print(mh.peek())
-    print(mh.poll())
-    print(mh.poll())
-    print(mh.poll())
-    print(mh.poll())
+    while mh.size() != 0:
+        print(mh.poll())
     '''
-    
-    #sp = ShortestPaths()
-    #sp.compute(t0, 'W')
-    #print(sp.shortestPathLength(t1, 'W'))
         
 def addPair(p1, p2):
     r = p1[0] + p2[0]

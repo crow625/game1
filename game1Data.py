@@ -56,8 +56,8 @@ class MinHeap():
     def __init__(self):
         #c is a list of Entries (values and priorities)
         self.c = []
-        #keymap maps values to integers?
-        #tiles to ints (distance)
+        #keymap maps values to their position in the array
+        #tiles to ints 
         self.keyMap = {}
         
     #add entry with value and priority to heap
@@ -80,9 +80,15 @@ class MinHeap():
     def poll(self):
         if len(self.c) == 0:
             raise IndexError("heap poll: heap is empty")
+        
+        if len(self.c) == 1:
+            self.keyMap[self.peek()] = None
+            return self.c.pop().value
+        
         val = self.peek()
         self.keyMap[val] = None
         popper = self.c.pop()
+        
         self.c[0] = popper
         
         self.keyMap[popper.value] = 0
