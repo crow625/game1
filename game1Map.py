@@ -45,9 +45,39 @@ class Tile():
         self.neighbors[t.getCoords()] = t
         
 class MapArray():
-    def __init__(self, dimension):
-        self.gameMap = [["--" for x in range(dimension)] for y in range(dimension)]
-        self.dim = dimension
+    #read gamemap from txt file
+    #maps will always be square
+    def __init__(self, filename):
+        file = open("maps/" + filename, 'r')
+        self.dim = len(open("maps/" + filename, 'r').readlines())
+        self.gameMap = [['-' for x in range(self.dim)] for y in range(self.dim)]
+        r = 0
+        for line in file:
+            #ignore commented out lines
+            if '#' in line:
+                continue
+
+            line = line.strip('\n')
+            line_list = line.split(' ')
+            
+            c = 0
+            
+            for terr in line_list:
+                
+                t = Tile(r, c, terr)
+                self.gameMap[r][c] = t
+                
+                directions = ((0, -1), (-1, 0), (0, 1), (1, 0))
+                
+                for d in directions:
+                    
+                    n_r = r + d[0]
+                    n_c = c + d[1]
+                    
+                    if 0 <= n_r < self.dim and 0 <= n_c < self.dim:
+                        self.addEdge(t, self.getTile(n_r, n_c))
+                c += 1
+            r += 1
         
     def getTile(self, r, c):
         return self.gameMap[r][c]
@@ -64,9 +94,11 @@ class MapArray():
             dest.addNeighbor(orig)
         
     #constructs a dimension x dimension map of a single terrain type
-    def construct(self, terrain):
-        for r in range(self.dim):
-            for c in range(self.dim):
+    def construct(self, dimension, terrain):
+        self.dim = dimension
+        self.gameMap = [["--" for x in range(self.dim)] for y in range(self.dim)]
+        for r in range(dimension):
+            for c in range(dimension):
                 t = Tile(r, c, terrain)
                 self.gameMap[r][c] = t
                 directions = ((0, -1), (-1, 0), (0, 1), (1, 0))
@@ -119,7 +151,7 @@ class ShortestPaths():
                     
     def shortestPathLength(self, dest):
         if self.paths.get(dest) is None:
-            return 1000
+            return -1
         return self.paths[dest].distance
     
     def shortestPath(self, dest):
@@ -154,40 +186,10 @@ class ShortestPaths():
             self.distance = dist
             self.previous = prev          
        
-def main():
-    ma = MapArray(8)
-    ma.construct('g')
-    t0 = ma.getTile(0, 0)
-    t1 = ma.getTile(0, 1)
-    t2 = ma.getTile(1, 1)
-    t3 = ma.getTile(2, 2)
-    t4 = ma.getTile(4, 4)
-    
-    mu1 = gu.Warrior('u')
-    
-    sp = ShortestPaths()
-    sp.compute(t0, mu1)
-    for n in sp.shortestPath(t2):
-        print(n.getCoords())
-    print("Should be 0: " + str(sp.shortestPathLength(t0)))
-    print("Should be 1: " + str(sp.shortestPathLength(t1)))
-    print("Should be 2: " + str(sp.shortestPathLength(t2)))
-    print("Should be 4: " + str(sp.shortestPathLength(t3)))
-    print("Should be 1000: " + str(sp.shortestPathLength(t4)))
+#def main():
     
     
-    '''
-    mh = gd.MinHeap()
-    mh.add('a', 1)
-    mh.add('b', 2)
-    mh.add('e', 5)
-    mh.add('f', 6)
-    mh.add('d', 4)
-    mh.add('c', 3)
-    print(mh.peek())
-    while mh.size() != 0:
-        print(mh.poll())
-    '''
+    
         
 def addPair(p1, p2):
     r = p1[0] + p2[0]
