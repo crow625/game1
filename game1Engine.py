@@ -5,9 +5,10 @@ Stores all information about the current state of the map.
 Also responsible for determining all valid moves.
 '''
 import game1Units as gu
+import game1Map as gm
 
 class GameState():
-    def __init__(self): #what executes on startup
+    def __init__(self, mapname): #what executes on startup
         '''
         'g' = grass
         'w' = water
@@ -15,15 +16,11 @@ class GameState():
         'd' = desert
         '-' = empty
         '''
-        self.gameMap = [
-            ['m','m','w','m','g','g','g','g'],
-            ['g','m','w','g','g','g','g','g'],
-            ['g','g','w','w','g','g','g','g'],
-            ['g','g','g','w','w','w','g','g'],
-            ['g','g','g','g','g','w','w','w'],
-            ['g','g','g','g','g','g','g','g'],
-            ['g','g','g','g','g','g','d','d'],
-            ['g','g','g','g','g','d','d','d']]
+        self.gameMap = gm.MapArray(mapname)
+        
+        self.gameMap.mapAddUnit(gu.Warrior("u"), 7, 0)
+        self.gameMap.mapAddUnit(gu.Warrior("u"), 7, 7)
+        self.gameMap.mapAddUnit(gu.Warrior("e"), 0, 7)
             
         self.units = [
             ["--", "--", "--", "--", "--", "--", "--", gu.Warrior("e")],
@@ -42,47 +39,42 @@ class GameState():
         self.userToMove = True
         self.numUnits = 1
         self.allUnitsMoved = False
-        
+        self.moveLog = []
         
     def makeMove(self, move):
-        self.board[move.startRow][move.startCol] = "--" #unit leaves the original square
-        self.board[move.endRow][move.endCol] = move.unitMoved #and moves to new square
+        self.gameMap.mapAddUnit(None, move.startRow, move.startCol) #unit leaves the original square
+        self.gameMap.mapAddUnit(move.unitMoved, move.endRow, move.endCol) #and moves to new square
         self.moveLog.append(move) #logs the move
-        self.userToMove = not self.userToMove #swap players
+        move.unitMoved.movesLeft -= move.cost
         
     def getValidMoves(self):
         return self.getAllPossibleMoves()
         
     def getAllPossibleMoves(self):
         moves = []
-        for r in range(len(self.units)):
-            for c in range(len(self.units[r])):
-                if self.units[r][c] == "--":
+        for r in range(self.gameMap.getYdim()):
+            for c in range(self.gameMap.getXdim()):
+                if self.gameMap.mapGetUnit(r, c) is None:
                     turn = "-"
                 else :
-                    turn = self.units[r][c].team
+                    turn = self.gameMap.mapGetUnit(r, c).team
                 if (turn == 'u' and self.userToMove) or (turn == 'e' and not self.userToMove):
-                    unit = self.units[r][c] #unit on square
-                    unit.getMoves(r, c, moves, self, unit.movesLeft)
+                    unit = self.gameMap.mapGetUnit(r, c) #unit on square
+                    moves = gu.getMoves(r, c, moves, self)
                     
         return moves
         
-    
-        
-        
-            
-        
-        
         
 class Move():
-    def __init__(self, startSq, endSq, units, cost):
+    def __init__(self, startSq, endSq, gameMap, cost, path):
         self.startRow = startSq[0]
         self.startCol = startSq[1]
         self.endRow = endSq[0]
         self.endCol = endSq[1]
-        self.unitMoved = units[self.startRow][self.startCol]
+        self.unitMoved = gameMap.mapGetUnit(self.startRow, self.startCol)
         self.moveID = self.startRow * 1000 + self.startCol * 100 + self.endRow *10 + self.endCol
         self.cost = cost
+        self.path = path
     
     '''
     Overriding the equals method
@@ -90,4 +82,6 @@ class Move():
     def __eq__(self, other):
         if isinstance(other, Move):
             return self.moveID == other.moveID
+        else:
+            return False
                 

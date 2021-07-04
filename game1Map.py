@@ -24,6 +24,7 @@ class Tile():
         self.coords = (r, c)
         self.neighbors = {} #map coords to tile
         self.terrain = terrain
+        self.unit = None
         
     def getCoords(self):
         return self.coords
@@ -44,49 +45,85 @@ class Tile():
             return
         self.neighbors[t.getCoords()] = t
         
+    def addUnit(self, u):
+        self.unit = u
+    
+    def getUnit(self):
+        return self.unit
+        
 class MapArray():
     #read gamemap from txt file
-    #maps will always be square
+    '''TODO: format first line of map.txt to specify dimensions to enable rectangular maps'''
     def __init__(self, filename):
         file = open("maps/" + filename, 'r')
-        self.dim = len(open("maps/" + filename, 'r').readlines())
-        self.gameMap = [['-' for x in range(self.dim)] for y in range(self.dim)]
+        self.gameMap = []
+        #Write contents of file to gameMap 2-D array
         r = 0
         for line in file:
             #ignore commented out lines
             if '#' in line:
                 continue
-
+            c = 0
             line = line.strip('\n')
             line_list = line.split(' ')
-            
-            c = 0
-            
+
+            row = []
             for terr in line_list:
-                
                 t = Tile(r, c, terr)
-                self.gameMap[r][c] = t
-                
+                row.append(t)
+                c += 1
+            self.gameMap.append(row)
+            r += 1
+            
+        self.ydim = len(self.gameMap)
+        self.xdim = len(self.gameMap[0])
+        
+        #Add neighbors
+        for r in range(self.ydim):
+            for c in range(self.xdim):
                 directions = ((0, -1), (-1, 0), (0, 1), (1, 0))
-                
                 for d in directions:
-                    
                     n_r = r + d[0]
                     n_c = c + d[1]
-                    
-                    if 0 <= n_r < self.dim and 0 <= n_c < self.dim:
-                        self.addEdge(t, self.getTile(n_r, n_c))
-                c += 1
-            r += 1
+                    if 0 <= n_r < self.ydim and 0 <= n_c < self.xdim:
+                        self.addEdge(self.getTile(r, c), self.getTile(n_r, n_c))
+            
+        self.numUnits = {}
+        
         
     def getTile(self, r, c):
         return self.gameMap[r][c]
     
-    def getDim(self):
-        return self.dim
+    def getYdim(self):
+        return self.ydim
+    
+    def getXdim(self):
+        return self.xdim
     
     def getMap(self):
         return self.gameMap
+    
+    def mapAddUnit(self, u, r, c):
+        t = self.getTile(r, c)
+        #unit already exists on that tile
+        #so decrement its team count
+        if not (t.getUnit() is None):
+            self.numUnits[t.getUnit().team] = self.numUnits[t.getUnit().team] - 1
+            
+        t.addUnit(u)
+        #add None unit: don't increase number of units
+        #when a unit moves, add it to the destination tile
+        #and add None unit to the origin tile
+        if u is None:
+            return
+        #first unit of this team to be added
+        if not (u.team in self.numUnits.keys()):
+            self.numUnits[u.team] = 1
+        else:
+            self.numUnits[u.team] = self.numUnits[u.team] + 1
+        
+    def mapGetUnit(self, r, c):
+        return self.getTile(r, c).getUnit()
     
     def addEdge(self, orig, dest):
         if isinstance(orig, Tile) and isinstance(dest, Tile):
@@ -123,17 +160,16 @@ class ShortestPaths():
             
             f = frontier.poll() #f is a tile, THE CLOSEST tile to the origin that has not been determined yet
             
-            
             neighbors = f.getNeighbors() #neighbors is a dictionary that maps coordinates to a tile
             
             for coord in list(neighbors): #for every neighbor
                 #add the current distance to the cost of the tile we're currently checking
-                #move cost of -1 means invalid tile
+                #move cost of -1 means invalid tile, so skip
                 if neighbors[coord].getCost(unit.name) < 0:
                     continue
-                dist = self.paths[f].distance + neighbors[coord].getCost(unit.name) #FUTURE PROBLEM: will count distances of -1
-                #if unit has used all movement getting to this point, don't check
-                if self.paths[f].distance >= unit.maxMoves:
+                dist = self.paths[f].distance + neighbors[coord].getCost(unit.name)
+                #if unit has used all movement getting to this point, don't check beyond it 
+                if self.paths[f].distance >= unit.movesLeft:
                     continue
                 
                 #if tile does not have an entry in paths, it is new
@@ -186,8 +222,15 @@ class ShortestPaths():
             self.distance = dist
             self.previous = prev          
        
-#def main():
+def main():
+    ma = MapArray("map1.txt")
+    mu1 = gu.Warrior('u')
+    t0 = ma.getTile(0, 0)
+    t1 = ma.getTile(4, 0)
     
+    sp = ShortestPaths()
+    sp.compute(t0, mu1)
+    print(sp.shortestPathLength(t1))
     
     
         

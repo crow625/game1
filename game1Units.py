@@ -5,6 +5,24 @@ Defines unit objects and their attributes
 '''
 
 import game1Engine as ge
+import game1Map as gm
+
+#Returns a list of every possible move for the unit on the given tile
+def getMoves(r, c, moves, gs):
+    u = gs.gameMap.mapGetUnit(r, c)
+    sp = gm.ShortestPaths()
+    sp.compute(gs.gameMap.getTile(r, c), u)
+    for i in gs.gameMap.getMap(): #i = row
+        for j in i: #j = tile
+            #iterate through every tile, if distance is valid add a move
+            endRow = j.getCoords()[0]
+            endCol = j.getCoords()[1]
+            pathLength = sp.shortestPathLength(j)
+            if pathLength >= 0 and gs.gameMap.mapGetUnit(endRow, endCol) is None:
+                path = sp.shortestPath(gs.gameMap.getTile(endRow, endCol))
+                new_move = ge.Move((r, c), (endRow, endCol), gs.gameMap, pathLength, path)
+                moves.append(new_move)
+    return moves
 
 class Warrior():
     def __init__(self, team):
@@ -14,34 +32,17 @@ class Warrior():
         self.team = team
         self.name = 'W'
         self.image = self.team + self.name
-            
-    def getMoves(self, r, c, moves, gs, n):
-        directions = ((0, -1), (-1, 0), (0, 1), (1, 0))
-        if n <= 0:
-            return
-        for d in directions: #move one square at a time
-            endRow = r + d[0]
-            endCol = c + d[1]
-            if 0 <= endRow < 8 and 0 <= endCol < 8: #if on board
-                cost = self.moveCost[gs.gameMap[endRow][endCol]]
-                #can only move there if there is no unit and the cost is legal
-                if gs.units[endRow][endCol] == "--" and cost >= 0:
-                    new_move = ge.Move((r,c), (endRow,endCol), gs.units, cost)
-                    print("Found move: " + str(endCol) + "," + str(endRow) + " for cost " + str(self.maxMoves - n +cost))
-                    if len(moves) == 0:
-                        moves.append(new_move)
-                    for m in moves:
-                        #cheaper route: change cost
-                        if new_move == m and new_move.cost < m.cost:
-                            print("cheaper alternative")
-                            m.cost = new_move.cost
-                        #not cheaper: ignore
-                        elif new_move == m:
-                            print("not cheaper route")
-                            continue
-                        #different move: append
-                        else:
-                            moves.append(new_move)
-                    #recursive call
-                    
-                    self.getMoves(endRow, endCol, moves, gs, (n - cost))
+        
+    '''        
+    def getMoves(self, r, c, moves, gs):
+        sp = gm.ShortestPaths()
+        sp.compute(gs.gameMap.getTile(r, c), self)
+        for i in gs.gameMap.getMap():
+            for j in i:
+                #iterate through every tile, if distance is valid add a move
+                endRow = j.getCoords()[0]
+                endCol = j.getCoords()[1]
+                pathLength = sp.shortestPathLength(j)
+                if pathLength >= 0 and gs.units[endRow][endCol] == "--":
+                    new_move = ge.Move((r, c), (endRow, endCol), gs.units, pathLength)
+    '''
