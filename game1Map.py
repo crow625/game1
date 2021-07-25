@@ -7,6 +7,8 @@ Defines how the game map is stored.
 import game1Data as gd
 import game1Units as gu
 
+#should be deleted: cost library should be tied to unit. There will be many more units than terrain types.
+'''
 GRASS_COST = {'W': 1}
 DESERT_COST = {'W': 2}
 MOUNTAIN_COST = {'W': 3}
@@ -14,6 +16,7 @@ WATER_COST = {'W': -1}
 VOID_COST = {'W': 0}
 
 TERR_COST = {'g': GRASS_COST, 'd': DESERT_COST, 'm': MOUNTAIN_COST, 'w': WATER_COST, '-': VOID_COST}
+'''
 
 '''
 An individual square on the map.
@@ -37,7 +40,7 @@ class Tile():
     
     #what it would cost for given unit to move to this tile
     def getCost(self, unit):
-        return TERR_COST[self.terrain][unit]
+        return unit.moveCost[self.terrain]
     
     #adds a neighbor tile t
     def addNeighbor(self, t):
@@ -51,9 +54,11 @@ class Tile():
     def getUnit(self):
         return self.unit
         
+'''
+Responsible for generating the map and keeping track of the layout.
+'''
 class MapArray():
     #read gamemap from txt file
-    '''TODO: format first line of map.txt to specify dimensions to enable rectangular maps'''
     def __init__(self, filename):
         file = open("maps/" + filename, 'r')
         self.gameMap = []
@@ -105,8 +110,7 @@ class MapArray():
     
     def mapAddUnit(self, u, r, c):
         t = self.getTile(r, c)
-        #unit already exists on that tile
-        #so decrement its team count
+        #unit already exists on that tile, so decrement its team count
         if not (t.getUnit() is None):
             self.numUnits[t.getUnit().team] = self.numUnits[t.getUnit().team] - 1
             
@@ -117,6 +121,7 @@ class MapArray():
         if u is None:
             return
         #first unit of this team to be added
+        u.loc = (r, c)
         if not (u.team in self.numUnits.keys()):
             self.numUnits[u.team] = 1
         else:
@@ -165,9 +170,12 @@ class ShortestPaths():
             for coord in list(neighbors): #for every neighbor
                 #add the current distance to the cost of the tile we're currently checking
                 #move cost of -1 means invalid tile, so skip
-                if neighbors[coord].getCost(unit.name) < 0:
+                if neighbors[coord].getCost(unit) < 0:
                     continue
-                dist = self.paths[f].distance + neighbors[coord].getCost(unit.name)
+                #cannot walk through enemy units
+                if (not (neighbors[coord].getUnit() is None)) and (neighbors[coord].getUnit().team != unit.team):
+                    continue
+                dist = self.paths[f].distance + neighbors[coord].getCost(unit)
                 #if unit has used all movement getting to this point, don't check beyond it 
                 if self.paths[f].distance >= unit.movesLeft:
                     continue
@@ -179,7 +187,7 @@ class ShortestPaths():
                     #add tile to frontier
                     frontier.add(neighbors[coord], dist) 
                     
-                elif self.paths[f].distance + neighbors[coord].getCost(unit.name) < dist:
+                elif self.paths[f].distance + neighbors[coord].getCost(unit) < dist:
                     
                     self.paths[neighbors[coord]] = self.PathData(dist, f)
                     
