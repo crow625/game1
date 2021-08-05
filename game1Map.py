@@ -99,10 +99,10 @@ class MapArray():
     def getTile(self, r, c):
         return self.gameMap[r][c]
     
-    def getYdim(self):
+    def getYdim(self): #r
         return self.ydim
     
-    def getXdim(self):
+    def getXdim(self): #c
         return self.xdim
     
     def getMap(self):

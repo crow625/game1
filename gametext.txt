@@ -1,0 +1,32 @@
+#commented lines will be ignored
+#library header
+TXT_LIB_HEAD=UNIT LIBRARY
+#unit stats
+TXT_STATS=Stats
+TXT_HP=HP
+TXT_ATK=Attack
+TXT_DEF=Defense
+TXT_MOV=Movement
+#terrain
+TXT_GRASS=Grassland
+TXT_DESERT=Desert
+TXT_MOUNTAIN=Mountain
+TXT_WATER=Water
+#mouseover
+TXT_USER_NO_ATTACK={} has {} HP left, {} moves left, and has already attacked.
+TXT_USER_HAS_ATTACK={} has {} HP left, {} moves left, and can still attack.
+TXT_ENEMY_PREVIEW=Enemy {} has {} HP left.
+#attack forecast
+TXT_FC_ENEMY_SLAIN=Enemy {} will be defeated.
+TXT_FC_USER_SLAIN={} will be defeated.
+TXT_FC_ENEMY_TAKES=Enemy {} will take {} damage.
+TXT_FC_USER_TAKES={} will take {} damage.
+#attack
+TXT_USER_ATTACK={} dealt {} damage.
+TXT_ENEMY_ATTACK=Enemy {} dealt {} damage.
+TXT_USER_SLAIN={} defeated.
+TXT_ENEMY_SLAIN=Enemy {} defeated.
+#victory
+TXT_STALEMATE=Stalemate
+TXT_USER_WIN=Player wins!
+TXT_ENEMY_WIN=Enemy wins!
