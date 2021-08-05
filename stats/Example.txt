@@ -1,0 +1,6 @@
+Unit Name
+Max Moves
+Grass cost, desert cost, mountain cost, water cost
+max HP
+attack
+defense
