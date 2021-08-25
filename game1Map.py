@@ -60,9 +60,33 @@ Responsible for generating the map and keeping track of the layout.
 class MapArray():
     #read gamemap from txt file
     def __init__(self, filename):
-        file = open("maps/" + filename, 'r')
+        badMap = False
+        try:
+            file = open("maps/" + filename, 'r')
+        except:
+            print("Bad map: File not found. Opening map 1 instead.")
+            file = open("maps/map1.txt")
+        try:    
+            self.unitsPerTeam = int(file.readline().strip('\n'))
+        except:
+            self.unitsPerTeam = 2
+            print("Bad map: Units per team not specified. Defaulted to {}.".format(self.unitsPerTeam))
+            badMap = True
+        try:
+            userStartSet = file.readline().strip('\n').split(';')
+            enemyStartSet = file.readline().strip('\n').split(';')
+            self.readStartTiles(userStartSet, enemyStartSet)
+            badStarts = False
+        except:
+            print("Bad map: Start tiles not specified. Defaulted to top and bottom corners.")
+            badStarts = True
+            badMap = True
+            
+        if badMap:
+            #open old method: no header at all, just terrain. Other
+            file = open("maps/" + filename, 'r')
+        
         self.gameMap = []
-        #Write contents of file to gameMap 2-D array
         r = 0
         for line in file:
             #ignore commented out lines
@@ -82,6 +106,8 @@ class MapArray():
             
         self.ydim = len(self.gameMap)
         self.xdim = len(self.gameMap[0])
+        #if (self.y != self.ydim) or (self.x != self.xdim):
+            #print("Incorrect dimensions specified by map (Not fatal).")
         
         #Add neighbors
         for r in range(self.ydim):
@@ -93,8 +119,29 @@ class MapArray():
                     if 0 <= n_r < self.ydim and 0 <= n_c < self.xdim:
                         self.addEdge(self.getTile(r, c), self.getTile(n_r, n_c))
             
-        self.numUnits = {}
+        if badStarts:
+            self.userStart = [(self.ydim - 1, self.xdim - 1), (self.ydim - 1, 0)]
+            self.enemyStart = [(0, 0), (0, self.xdim - 1)]
+        self.numUnits = {'u': 0, 'e': 0}
         
+    def readStartTiles(self, userSet, enemySet):
+        self.userStart = []
+        self.enemyStart = []
+        for coords in userSet:
+            if '(' in coords:
+                coords = coords.strip("()")
+            coords = coords.split(',')
+            x = int(coords[0])
+            y = int(coords[1])
+            self.userStart.append((y,x))
+        for coords in enemySet:
+            if '(' in coords:
+                coords = coords.strip("()")
+            coords = coords.split(',')
+            x = int(coords[0])
+            y = int(coords[1])
+            self.enemyStart.append((y,x))
+        return
         
     def getTile(self, r, c):
         return self.gameMap[r][c]
@@ -190,8 +237,6 @@ class ShortestPaths():
                 elif self.paths[f].distance + neighbors[coord].getCost(unit) < dist:
                     
                     self.paths[neighbors[coord]] = self.PathData(dist, f)
-                    
-                    #distance is not saving correctly, make it a real value, not a dictionary
                     
     def shortestPathLength(self, dest):
         if self.paths.get(dest) is None:
