@@ -23,7 +23,7 @@ def getMoves(r, c, moves, gs):
             endRow = j.getCoords()[0]
             endCol = j.getCoords()[1]
             pathLength = sp.shortestPathLength(j)
-            if pathLength >= 0 and gs.gameMap.mapGetUnit(endRow, endCol) is None:
+            if pathLength >= 0 and (gs.gameMap.mapGetUnit(endRow, endCol) is None or r, c == endRow, endCol):
                 path = sp.shortestPath(gs.gameMap.getTile(endRow, endCol))
                 new_move = ge.Move((r, c), (endRow, endCol), gs.gameMap, pathLength, path)
                 moves.append(new_move)
@@ -67,10 +67,10 @@ A generic unit class. Its stats are drawn from a file in the stats folder.
     loc (tuple) = coordinates where the unit will be placed
 '''
 class Unit():
-    def __init__(self, name, team, loc):
+    def __init__(self, name, team):
         self.moveCost = {}
         self.team = team
-        self.loc = loc
+        self.loc = (-1, -1)
         readStats(self, name)
         self.image = self.team + self.name
         self.movesLeft = self.maxMoves
