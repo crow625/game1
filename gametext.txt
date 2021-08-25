@@ -30,3 +30,18 @@ TXT_ENEMY_SLAIN=Enemy {} defeated.
 TXT_STALEMATE=Stalemate
 TXT_USER_WIN=Player wins!
 TXT_ENEMY_WIN=Enemy wins!
+#info
+TXT_USER_MOVE=Your turn
+TXT_ENEMY_MOVE=Enemy's turn
+#how to play
+TXT_HOW_HEAD=HOW TO PLAY
+TXT_HOW_SUBH_1=Controls
+TXT_HOW_PAR_1=Mouse: Select your units and place them, move them, and attack the opponent.
+TXT_HOW_PAR_2=Enter: End your turn.
+TXT_HOW_PAR_3=Arrow keys: Flip through pages of the library.
+TXT_HOW_SUBH_2=Game Phases
+TXT_HOW_PAR_4=*The game begins in phase 1. In phase 1, you select the units you wish to use with your mouse and place them on the highlighted squares.
+TXT_HOW_PAR_5=*Certain units are better suited to different types of terrain, so pay attention to the movement costs listed next to each unit.
+TXT_HOW_PAR_6=*The best teams will have a mix of fast units suited for offense, and slower units for defending.
+TXT_HOW_PAR_7=*Once both teams have selected their units, the game enters phase 2. In phase 2, the players will take turns moving their units with the mouse and attacking the opponent's units.
+TXT_HOW_PAR_8=*A player wins by either defeating all of the enemy's units, or by capturing one of their two forts in the corners of the map.
