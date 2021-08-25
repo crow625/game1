@@ -24,21 +24,21 @@ class GameState():
         unitFiles = listdir("./stats")
         unitFiles.remove("Example.txt")
         for file in unitFiles:
-            self.allUnits.append('u' + file[0:-4])
-            self.allUnits.append('e' + file[0:-4])
-        self.allUnits.sort()
+            self.allUnits.append((gu.Unit(file[0:-4], 'u'), gu.Unit(file[0:-4], 'e')))
         #self.numUnits = 0
         
-        self.addUnit(gu.Unit("Warrior", 'u', (3, 0)))
-        self.addUnit(gu.Unit("Warrior", 'u', (3, 3)))
-        self.addUnit(gu.Unit("Tarantula", 'e', (0, 3)))
-        self.addUnit(gu.Unit("Warrior", 'e', (0, 0)))
+        #self.addUnit(gu.Unit("Frog", 'u', (3, 0)))
+        #self.addUnit(gu.Unit("Tarantula", 'u'), (3, 3))
+        #self.addUnit(gu.Unit("Tarantula", 'e'), (0, 3))
+        #self.addUnit(gu.Unit("Warrior", 'e', (0, 0)))
                   
         self.terrainCost = {'g': 1, 'w': -1, 'm': 3, 'd': 2, '-': 1}
         
         self.turnCount = 0
+        self.gameTime = 0
         self.userToMove = True
         self.allUnitsMoved = False
+        self.cycle = 0
         self.moveLog = []
         self.TEXT = {}
         
@@ -53,6 +53,9 @@ class GameState():
         self.forecastDelay = {}
         self.didForecast = ()
         
+        self.minDmg = 1
+        self.phase1 = True
+        self.phase2 = False
         
     '''
     Loads the game's text.
@@ -71,14 +74,15 @@ class GameState():
     Adds a unit to the game map.
         unit = unit object
     '''
-    def addUnit(self, unit):
-        r, c = unit.loc
+    def addUnit(self, unit, loc):
+        unit.loc = loc
+        r, c = loc
         try:
             self.gameMap.mapAddUnit(unit, r, c)
             self.units.append(unit.image)
         #self.numUnits += 1
         except:
-            print("Could not add {} at {}, {}, coordinates out of bounds.".format(unit.name, r, c))
+            print("Could not add {} at ({}, {}), coordinates out of bounds.".format(unit.name, r, c))
         
     '''
     Moves a unit from one location to another.
@@ -130,6 +134,33 @@ class GameState():
                 
     '''
     Determines what actions to take based on the player's clicks and the current game state.
+    Only triggers during phase 1.
+        playerClicks = array of tuples that indicate coordinates the player has clicked (row, col)
+        libSelected = int from [0-units per page), indicates which unit in the library was clicked
+        libPage = int, which library page is currently displayed
+        upp = int, units displayed per page of library
+    '''
+    def addUnitLogic(self, playerClicks, libSelected, libPage, upp):
+        if libSelected is None:
+            return []
+        if self.userToMove:
+            team = 'u'
+            tnum = 0
+            startTiles = self.gameMap.userStart
+        else:
+            team = 'e'
+            tnum = 1
+            startTiles = self.gameMap.enemyStart
+        if self.gameMap.numUnits.get(team) < self.gameMap.unitsPerTeam and (playerClicks[-1] in startTiles):
+            self.addUnit(gu.Unit(self.allUnits[libPage*upp + libSelected][tnum].name, team), playerClicks[-1])
+            return []
+        unitSelected = self.gameMap.mapGetUnit(playerClicks[-1][0], playerClicks[-1][1])
+        if (not unitSelected is None) and unitSelected.team == team:
+            self.addUnit(gu.Unit(self.allUnits[libPage*upp + libSelected][tnum].name, team), playerClicks[-1])
+        return []
+                
+    '''
+    Determines what actions to take based on the player's clicks and the current game state.
         playerClicks = array of tuples that indicate coordinates the player has clicked (row, col)
         validMoves = array of Move objects that the player can make in the current gamestate
     '''
@@ -158,7 +189,8 @@ class GameState():
                 self.attack(firstUnit, secondUnit)
                 return ([], True)
             '''
-            #fast attack: works but does not take most direct route. Should display forecast of route taken or follow the path of mouse.
+            #fast attack: works but does not take most direct route.
+            Should display forecast of route taken or follow the path of mouse.
             else:
                 for m in validMoves:
                     if (playerClicks[1][0], playerClicks[1][1]) in m.attacks:
@@ -175,6 +207,28 @@ class GameState():
                 return ([], True)
         #invalid empty square
         return ([], False)
+    
+    '''
+    Determine which unit was clicked on in the library, or if the '?' was clicked.
+        loc = the mouse's position. tuple (x, y)
+        dims = tuple of the game dimensions
+        page = current page of the library
+        upp = units per page
+        howTo = boolean that indicates if the how to play screen is currently displayed.
+    '''
+    def libLogic(self, loc, dims, page, upp, howTo):
+        if 0 < loc[1] < 64 and dims[3]*0.9 + dims[4] < loc[0] < dims[3] + dims[4]:
+            if howTo:
+                return 'X'
+            return '?'
+        if howTo:
+            return None
+        if 64 < loc[1] < dims[5] and dims[4] < loc[0] < dims[3] + dims[4]:
+            slot = 2*(loc[1]-64)//dims[3] #0, 1, 2, 3
+            if len(self.allUnits) > page*upp + slot: #selected unit exists
+                return slot
+        return None
+        
                 
     '''
     Restores the moves left and attack readiness for all units of the team whose turn is next.
@@ -182,6 +236,8 @@ class GameState():
     '''
     def refreshMoves(self):
         self.userToMove = not self.userToMove
+        if self.userToMove:
+            self.turnCount += 1
         for row in self.gameMap.getMap():
             for tile in row:
                 unit = tile.getUnit()
@@ -267,8 +323,7 @@ class GameState():
         defender = unit object who retaliates
     '''
     def attack(self, attacker, defender):
-        attacker_dmg = attacker.atk - defender.defense
-        defender_dmg = defender.atk - attacker.defense
+        attacker_dmg, defender_dmg = self.damageFormula(attacker, defender)
         #attacking consumes all movement
         attacker.movesLeft = 0
         attacker.didAttack = True
@@ -293,8 +348,7 @@ class GameState():
         defender = unit object who retaliates
     '''
     def attackForecast(self, attacker, defender):
-        attacker_dmg = attacker.atk - defender.defense
-        defender_dmg = defender.atk - attacker.defense
+        attacker_dmg, defender_dmg = self.damageFormula(attacker, defender)
         if attacker_dmg >= defender.hpLeft:
             print(self.TEXT.get("TXT_FC_ENEMY_SLAIN").format(defender.name))
         else:
@@ -303,14 +357,28 @@ class GameState():
                 print(self.TEXT.get("TXT_FC_USER_SLAIN").format(attacker.name))
             else:
                 print(self.TEXT.get("TXT_FC_USER_TAKES").format(attacker.name, defender_dmg))
+     
+    '''
+    Calculates how much damage two units will deal when engaged in combat.
+    If an attack would deal an amount lower than the minimum damage,
+    sets its damage to the minimum amount.
+    '''
+    def damageFormula(self, attacker, defender):
+        attacker_dmg = attacker.atk - defender.defense
+        if attacker_dmg < self.minDmg:
+            attacker_dmg = self.minDmg
+        defender_dmg = defender.atk - attacker.defense
+        if defender_dmg < self.minDmg:
+            defender_dmg = self.minDmg
+        return (attacker_dmg, defender_dmg)
             
     '''
     Determines if a player has won yet.
     Returns True if a player has won, False otherwise.
     '''
     def victoryCheck(self):
-        playerCount = self.gameMap.numUnits["u"]
-        enemyCount = self.gameMap.numUnits["e"]
+        playerCount = self.gameMap.numUnits.setdefault('u', 0)
+        enemyCount = self.gameMap.numUnits.setdefault('e', 0)
         if enemyCount == 0:
             if playerCount == 0:
                 print(self.TEXT.get("TXT_STALEMATE"))
